@@ -1,0 +1,5 @@
+fastapi[standard]
+sqlalchemy>=2.0.0
+pwdlib[argon2]
+pyjwt
+python-dotenv

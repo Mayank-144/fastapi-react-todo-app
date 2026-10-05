@@ -1,0 +1,271 @@
+/* Glassmorphism Card */
+.card {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+  transition: all 0.3s ease;
+}
+
+h1, h2, h3 {
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 16px;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+input[type="text"],
+input[type="password"] {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  color: var(--text-main);
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+/* Buttons */
+.btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  background: var(--primary);
+  color: white;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.btn:hover {
+  background: var(--primary-hover);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-danger {
+  background: var(--danger);
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 8px;
+  width: auto;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+.btn-secondary {
+  background: #334155;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 8px;
+  width: auto;
+}
+
+.btn-secondary:hover {
+  background: #475569;
+}
+
+.switch-link {
+  text-align: center;
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.switch-link button {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 4px;
+  font-size: 13px;
+  text-decoration: underline;
+}
+
+/* Header in Dashboard */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.user-badge {
+  font-size: 12px;
+  background: rgba(99, 102, 241, 0.2);
+  color: #818cf8;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.admin-badge {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+/* Add Todo Row */
+.todo-input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.todo-input-row input {
+  flex: 1;
+}
+
+.todo-input-row .btn {
+  width: auto;
+  padding: 0 20px;
+}
+
+/* Todo List Items */
+.todo-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid var(--card-border);
+  padding: 12px 16px;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.todo-item:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.todo-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.todo-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.todo-text {
+  font-size: 14px;
+  color: var(--text-main);
+  transition: color 0.2s, text-decoration 0.2s;
+}
+
+.todo-text.done {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+/* Admin Section */
+.admin-card {
+  margin-top: 24px;
+  border-top: 1px dashed var(--card-border);
+  padding-top: 16px;
+}
+
+.admin-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.users-list {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  list-style: none;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.users-list li {
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Alert Box */
+.alert {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease;
+}
+
+.alert-error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid var(--danger);
+  color: #fca5a5;
+}
+
+.alert-success {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid var(--accent);
+  color: #6ee7b7;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
