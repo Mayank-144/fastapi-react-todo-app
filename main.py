@@ -23,6 +23,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def read_root():
+    return {
+        "status": "success",
+        "message": "FastAPI Todo Pro Backend is running!",
+        "docs_url": "http://localhost:8000/docs"
+    }
+
 
 # ==========================================
 # AUTHENTICATION ENDPOINTS
