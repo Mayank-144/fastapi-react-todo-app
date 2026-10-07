@@ -4,18 +4,18 @@ from pydantic import BaseModel, ConfigDict
 # 1. User Schemas (Input & Output)
 # ==========================================
 
-# Signup request ke liye: Client sirf username aur password bhejega
+# User registration schema: Client sends username and password
 class UserCreate(BaseModel):
     username: str
     password: str
 
-# User data response ke liye: Password KABHI return nahi hoga!
+# User response schema: Password hash is omitted for security
 class UserResponse(BaseModel):
     id: int
     username: str
     role: str
 
-    # Pydantic v2: SQLAlchemy ORM objects ko direct read karne ke liye
+    # Pydantic v2 configuration to read directly from SQLAlchemy ORM objects
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -23,12 +23,12 @@ class UserResponse(BaseModel):
 # 2. JWT Token Schemas
 # ==========================================
 
-# Login hone par client ko ye token response milega
+# Returned to client upon successful login
 class Token(BaseModel):
     access_token: str
     token_type: str
 
-# Token ke andar se nikalne wala data
+# Decoded JWT token payload
 class TokenData(BaseModel):
     username: str | None = None
 
@@ -37,11 +37,11 @@ class TokenData(BaseModel):
 # 3. Todo Schemas (Input & Output)
 # ==========================================
 
-# Naya Todo create karne ke liye: Client sirf title bhejega
+# Todo creation schema: Client submits title
 class TodoCreate(BaseModel):
     title: str
 
-# Todo ka response: Har todo ka complete data
+# Todo response schema: Full todo data
 class TodoResponse(BaseModel):
     id: int
     title: str
@@ -52,7 +52,7 @@ class TodoResponse(BaseModel):
 
 
 # ==========================================
-# 4. AI Schemas (LangChain)
+# 4. AI Feature Schemas (LangChain)
 # ==========================================
 
 class AISummaryResponse(BaseModel):

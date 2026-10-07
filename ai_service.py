@@ -8,7 +8,7 @@ load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-# Groq LLM Initialize (qwen/qwen3.8-27b)
+# Initialize Groq LLM (qwen/qwen3.8-27b provides high speed and multilingual comprehension)
 llm = ChatGroq(
     groq_api_key=GROQ_API_KEY,
     model_name="qwen/qwen3.8-27b",
@@ -23,11 +23,11 @@ output_parser = StrOutputParser()
 # ==========================================
 def generate_task_summary(tasks: list[dict]) -> str:
     """
-    User ke saare tasks lekar clean, structured AI summary banata hai.
-    No raw markdown tables, no triple hashes, no asterisks clutter.
+    Generates a structured, motivating task summary.
+    Accepts tasks in English, Hindi, or Hinglish, and outputs clean, structured English.
     """
     if not tasks:
-        return "Abhi aapke paas koi task nahi hai! Upar diye box se naya task add karein."
+        return "You currently have no tasks in your list! Add a new task using the input box above."
     
     total = len(tasks)
     done_count = sum(1 for t in tasks if t['is_done'])
@@ -41,20 +41,23 @@ def generate_task_summary(tasks: list[dict]) -> str:
     prompt = ChatPromptTemplate.from_messages([
         (
             "system",
-            "Aap ek friendly Task Manager AI assistant ho.\n"
+            "You are a smart, friendly Task Manager AI assistant.\n"
+            "LANGUAGE SUPPORT:\n"
+            "- The user input, task titles, or questions may be in English, Hindi (Devanagari), or Hinglish (Roman Hindi/Urdu).\n"
+            "- Accurately understand whatever language is provided and return a professional, structured response in English.\n\n"
             "CRITICAL FORMATTING RULES:\n"
             "1. Do NOT use markdown tables (no '|---', no '| col |').\n"
             "2. Do NOT use markdown headers like '###' or '##'.\n"
             "3. Do NOT use bold markdown stars like '**text**'.\n"
-            "4. Hinglish me clean, readable bullet points (•, 📌, ✅, ⏳) use karo.\n"
-            "5. Structure:\n"
-            "   📊 Overall Status: Total, Completed, aur Pending count.\n"
-            "   ⚡ Progress Review: 1-2 motivating lines.\n"
-            "   📌 Next Focus: Jo pending hain unke liye quick recommendation."
+            "4. Use clean, readable bullet points (•, 📊, ⚡, 📌, ✅, ⏳).\n"
+            "5. Structure the response as follows:\n"
+            "   📊 Overall Status: Total, Completed, and Pending count.\n"
+            "   ⚡ Progress Overview: 1-2 encouraging, actionable sentences.\n"
+            "   📌 Next Steps: Key focus recommendations for remaining pending tasks."
         ),
         (
             "human",
-            "User ke tasks:\n{tasks_text}\n\nTotal: {total}, Completed: {done_count}, Pending: {pending_count}\n\nClean Hinglish summary do:"
+            "User task list:\n{tasks_text}\n\nTask Statistics: Total: {total}, Completed: {done_count}, Pending: {pending_count}\n\nProvide a clean summary:"
         )
     ])
     
@@ -72,35 +75,38 @@ def generate_task_summary(tasks: list[dict]) -> str:
 # ==========================================
 def suggest_task_priorities(tasks: list[dict]) -> str:
     """
-    Pending tasks ko analyze karke High, Medium, Low priority suggest karta hai.
-    No raw markdown tables or stars.
+    Analyzes pending tasks and categorizes them into High, Medium, and Low priorities.
+    Accepts inputs in English, Hindi, or Hinglish, and returns clean English recommendations.
     """
     pending_tasks = [t for t in tasks if not t['is_done']]
     if not pending_tasks:
-        return "🎉 Shabash! Aapke saare tasks already completed hain. Enjoy your free time!"
+        return "🎉 Great job! All your tasks are completed. Enjoy your day!"
     
     tasks_text = "\n".join([f"- {t['title']}" for t in pending_tasks])
     
     prompt = ChatPromptTemplate.from_messages([
         (
             "system",
-            "Aap ek smart Productivity Coach AI ho.\n"
+            "You are an expert Productivity Coach AI.\n"
+            "LANGUAGE SUPPORT:\n"
+            "- The user input or tasks may be provided in English, Hindi, or Hinglish.\n"
+            "- Understand the input context completely in any language and deliver clear priority recommendations in English.\n\n"
             "CRITICAL FORMATTING RULES:\n"
             "1. Do NOT use markdown tables (no '|---', no '| col |').\n"
             "2. Do NOT use markdown headers like '###' or '##'.\n"
             "3. Do NOT use bold markdown stars like '**text**'.\n"
-            "4. Clear, clean sections me output do with emojis:\n\n"
-            "🔴 HIGH PRIORITY (Pehle Ye Karo):\n"
-            "• [Task Name] -> [Short reason in Hinglish]\n\n"
-            "🟡 MEDIUM PRIORITY (Iske Baad):\n"
-            "• [Task Name] -> [Short reason in Hinglish]\n\n"
-            "🟢 LOW PRIORITY (Fursat Me):\n"
-            "• [Task Name] -> [Short reason in Hinglish]\n\n"
-            "💡 Pro Tip: [1 short motivational line]"
+            "4. Structure output cleanly into distinct sections with emojis:\n\n"
+            "🔴 HIGH PRIORITY (Do First):\n"
+            "• [Task Name] -> [Brief reason in English]\n\n"
+            "🟡 MEDIUM PRIORITY (Do Next):\n"
+            "• [Task Name] -> [Brief reason in English]\n\n"
+            "🟢 LOW PRIORITY (Later / Leisure):\n"
+            "• [Task Name] -> [Brief reason in English]\n\n"
+            "💡 Pro Tip: [1 short actionable productivity advice]"
         ),
         (
             "human",
-            "Ye mere pending tasks hain:\n{tasks_text}\n\nInhe categorize karke clean Hinglish me priority recommendation do:"
+            "Here are the user's pending tasks:\n{tasks_text}\n\nCategorize and prioritize them:"
         )
     ])
     
@@ -113,25 +119,30 @@ def suggest_task_priorities(tasks: list[dict]) -> str:
 # ==========================================
 def extract_task_from_natural_language(user_text: str) -> str:
     """
-    User ke casual text se clean Todo Title nikalta hai.
-    Example: 'Mujhe kal shaam 6 baje gym jana hai' -> 'Kal shaam 6:00 PM Gym jana'
+    Extracts a concise, actionable Todo Title from natural language text.
+    Handles input in English, Hindi, or Hinglish seamlessly.
+    Example: 'Mujhe kal shaam 6 baje gym jana hai' -> 'Gym workout at 6:00 PM tomorrow'
     """
     prompt = ChatPromptTemplate.from_messages([
         (
             "system",
-            "Aap ek Todo Title Extractor ho.\n"
-            "User casual Hinglish ya English me apna task bolega.\n"
-            "Aapko sirf aur sirf ek clean, crisp Todo Title return karna hai.\n"
-            "Do NOT include quotes, do NOT include stars, do NOT include explanations."
+            "You are an intelligent Todo Title Extractor.\n"
+            "LANGUAGE SUPPORT:\n"
+            "- The user may express their task in English, Hindi, or Hinglish.\n"
+            "- Accurately interpret the task intent, dates, times, and activities in any of these languages.\n"
+            "- Output a clean, concise, actionable task title in clear English.\n\n"
+            "CRITICAL RULES:\n"
+            "1. Return ONLY the extracted task title.\n"
+            "2. Do NOT include quotes, asterisks, prefixes, or explanations."
         ),
         (
             "human",
-            "User text: '{user_text}'\n\nClean Todo Title:"
+            "User text: '{user_text}'\n\nClean Task Title:"
         )
     ])
     
     chain = prompt | llm | output_parser
     res = chain.invoke({"user_text": user_text})
-    # Extra cleanup to guarantee no markdown stars or surrounding quotes
+    # Sanitize any accidental quotes or asterisks
     clean_title = res.strip().strip('"').strip("'").replace("**", "").replace("*", "")
     return clean_title

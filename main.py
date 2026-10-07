@@ -9,13 +9,13 @@ import schemas
 import security
 import ai_service
 
-# 1. Database tables automatically create karo
+# 1. Automatically create database tables if they do not exist
 models.Base.metadata.create_all(bind=database.engine)
 
-# 2. FastAPI Application Initialize
+# 2. Initialize FastAPI Application
 app = FastAPI(title="FastAPI Todo Pro API")
 
-# 3. CORS Middleware: React Frontend (port 5173) se API call allow karne ke liye
+# 3. CORS Middleware configuration to allow React frontend requests
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -39,12 +39,12 @@ def read_root():
 
 @app.post("/signup", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
 def signup(user_data: schemas.UserCreate, db: Session = Depends(database.get_db)):
-    """Naya user register karta hai (Role hamesha 'user' rahega)"""
+    """Registers a new user account (default role: 'user')."""
     existing_user = db.query(models.User).filter(models.User.username == user_data.username).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already registered")
     
-    # Password ko secure Argon2 se hash karke database me save karo
+    # Securely hash the password using Argon2
     hashed_pwd = security.hash_password(user_data.password)
     new_user = models.User(
         username=user_data.username,
@@ -59,7 +59,7 @@ def signup(user_data: schemas.UserCreate, db: Session = Depends(database.get_db)
 
 @app.post("/login", response_model=schemas.Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
-    """User ko verify karke JWT access token return karta hai"""
+    """Authenticates the user credentials and returns a JWT access token."""
     user = db.query(models.User).filter(models.User.username == form_data.username).first()
     if not user or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
@@ -68,14 +68,14 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # JWT Token create karo jisme user ka username 'sub' claim me hoga
+    # Generate JWT token with the username stored in the 'sub' claim
     access_token = security.create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
 
 @app.get("/me", response_model=schemas.UserResponse)
 def get_me(current_user: models.User = Depends(security.get_current_user)):
-    """Logged-in user ki profile aur role return karta hai"""
+    """Returns the profile and role of the currently authenticated user."""
     return current_user
 
 
@@ -89,10 +89,10 @@ def create_todo(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
-    """Current logged-in user ke liye naya todo add karta hai"""
+    """Creates a new todo item for the authenticated user."""
     new_todo = models.Todo(
         title=todo_in.title,
-        user_id=current_user.id  # Owner ID client se nahi, token se li ja rahi hai (Security)
+        user_id=current_user.id
     )
     db.add(new_todo)
     db.commit()
@@ -105,7 +105,7 @@ def get_my_todos(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
-    """Sirf current user ke apne todos return karta hai (Dusre ka data nahi dikhta)"""
+    """Retrieves all todos belonging strictly to the authenticated user."""
     return db.query(models.Todo).filter(models.Todo.user_id == current_user.id).all()
 
 
@@ -115,7 +115,7 @@ def toggle_todo_done(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
-    """Todo ka status done/undone toggle karta hai (Sirf owner kar sakta hai)"""
+    """Toggles the completion status of a todo item."""
     todo = db.query(models.Todo).filter(models.Todo.id == todo_id).first()
     if not todo:
         raise HTTPException(status_code=404, detail="Todo not found")
@@ -135,12 +135,11 @@ def delete_todo(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
-    """Todo delete karta hai (Owner ya Admin dono kar sakte hain)"""
+    """Deletes a todo item (Allowed for the owner or an admin)."""
     todo = db.query(models.Todo).filter(models.Todo.id == todo_id).first()
     if not todo:
         raise HTTPException(status_code=404, detail="Todo not found")
     
-    # Check: Kya user owner hai ya admin hai?
     if todo.user_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized to delete this todo")
     
@@ -158,7 +157,7 @@ def get_ai_summary(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
-    """User ke saare database todos ka AI generated summary"""
+    """Generates an AI powered summary of all tasks for the current user."""
     user_todos = db.query(models.Todo).filter(models.Todo.user_id == current_user.id).all()
     tasks_data = [{"id": t.id, "title": t.title, "is_done": t.is_done} for t in user_todos]
     
@@ -171,7 +170,7 @@ def get_ai_priorities(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
-    """AI suggest karega ki pending tasks me se kaunsa task pehle karna hai"""
+    """AI suggests prioritized task recommendations for pending items."""
     user_todos = db.query(models.Todo).filter(models.Todo.user_id == current_user.id).all()
     tasks_data = [{"id": t.id, "title": t.title, "is_done": t.is_done} for t in user_todos]
     
@@ -185,14 +184,12 @@ def natural_language_add_todo(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
-    """Natural language se task extract karke direct database me save karta hai"""
+    """Extracts a structured task title from natural language input and saves it to the database."""
     if not req.prompt.strip():
         raise HTTPException(status_code=400, detail="Prompt cannot be empty")
     
-    # AI extracts clean task title
     extracted_title = ai_service.extract_task_from_natural_language(req.prompt)
     
-    # Save to SQLite Database
     new_todo = models.Todo(
         title=extracted_title,
         user_id=current_user.id
@@ -212,7 +209,7 @@ def get_all_users_admin(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(security.get_current_user)
 ):
-    """Saare registered users ki list (Sirf admin ke liye)"""
+    """Lists all registered users in the database (Admin only)."""
     if current_user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

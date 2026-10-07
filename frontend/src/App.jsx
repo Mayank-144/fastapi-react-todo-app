@@ -4,7 +4,7 @@ import './App.css';
 const API_URL = "http://localhost:8000";
 
 function App() {
-  // Auth states
+  // Authentication states
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [user, setUser] = useState(null);
   const [isSignup, setIsSignup] = useState(false);
@@ -23,7 +23,7 @@ function App() {
   // Admin users state
   const [adminUsers, setAdminUsers] = useState([]);
 
-  // Alert state
+  // Alert notification state
   const [alert, setAlert] = useState(null);
 
   const showAlert = (msg, isError = true) => {
@@ -31,7 +31,7 @@ function App() {
     setTimeout(() => setAlert(null), 4000);
   };
 
-  // Fetch Current User
+  // Fetch Current User Profile
   const fetchMe = async (authToken) => {
     try {
       const res = await fetch(`${API_URL}/me`, {
@@ -61,7 +61,7 @@ function App() {
     }
   };
 
-  // Fetch Admin Users
+  // Fetch Registered Users for Admin
   const fetchAdminUsers = async (authToken) => {
     try {
       const res = await fetch(`${API_URL}/admin/users`, {
@@ -84,7 +84,7 @@ function App() {
     }
   }, [token]);
 
-  // Auth Handler
+  // Handle Login & Signup
   const handleAuth = async (e) => {
     e.preventDefault();
     if (!username.trim() || !password) return;
@@ -129,7 +129,7 @@ function App() {
     }
   };
 
-  // Regular Add Todo
+  // Standard Task Creation
   const handleAddTodo = async (e) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
@@ -152,7 +152,7 @@ function App() {
   };
 
   // ==========================================
-  // AI FEATURE 1: Natural Language Task Add
+  // AI FEATURE 1: Multilingual Natural Language Task Add
   // ==========================================
   const handleAINaturalAdd = async (e) => {
     e.preventDefault();
@@ -182,7 +182,7 @@ function App() {
   };
 
   // ==========================================
-  // AI FEATURE 2: Summary
+  // AI FEATURE 2: Task Summary
   // ==========================================
   const handleAISummary = async () => {
     setAiLoading(true);
@@ -202,7 +202,7 @@ function App() {
   };
 
   // ==========================================
-  // AI FEATURE 3: Priorities
+  // AI FEATURE 3: Smart Priority Suggestions
   // ==========================================
   const handleAIPriorities = async () => {
     setAiLoading(true);
@@ -221,7 +221,7 @@ function App() {
     }
   };
 
-  // Toggle Todo Done
+  // Toggle Todo Completion
   const handleToggleTodo = async (id) => {
     try {
       const res = await fetch(`${API_URL}/todos/${id}`, {
@@ -274,7 +274,7 @@ function App() {
         <div className="card auth-box">
           <h1>{isSignup ? "Create Account" : "Welcome Back"}</h1>
           <p className="subtitle">
-            {isSignup ? "Sign up to start organizing tasks with AI" : "Enter your credentials to continue"}
+            {isSignup ? "Sign up to organize tasks with multilingual AI" : "Enter your credentials to continue"}
           </p>
 
           <form onSubmit={handleAuth}>
@@ -283,7 +283,7 @@ function App() {
               <input
                 id="username"
                 type="text"
-                placeholder="e.g. rahul@example.com"
+                placeholder="e.g. user@example.com"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -339,7 +339,7 @@ function App() {
           {/* AI SUPERPOWERS SECTION */}
           <div className="ai-section">
             <div className="ai-section-title">
-              <span>🤖</span> LangChain AI Assistant
+              <span>🤖</span> LangChain AI Assistant (English • Hindi • Hinglish)
             </div>
 
             <div className="ai-toolbar">
@@ -351,11 +351,11 @@ function App() {
               </button>
             </div>
 
-            {/* NATURAL LANGUAGE TASK ADD */}
+            {/* MULTILINGUAL NATURAL LANGUAGE TASK ADD */}
             <form className="ai-natural-box" onSubmit={handleAINaturalAdd}>
               <input
                 type="text"
-                placeholder="✨ Add in natural language (e.g. 'Kal shaam 6 baje gym jana hai')"
+                placeholder="✨ Add in English, Hindi, or Hinglish (e.g. 'Gym at 6 PM' or 'Kal shaam 6 baje gym jana')"
                 value={naturalPrompt}
                 onChange={(e) => setNaturalPrompt(e.target.value)}
                 disabled={aiLoading}

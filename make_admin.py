@@ -3,15 +3,16 @@ import database
 import models
 
 def promote_to_admin(username: str):
+    """Promotes a registered user to the 'admin' role."""
     db = database.SessionLocal()
     try:
         user = db.query(models.User).filter(models.User.username == username).first()
         if not user:
-            print(f"Error: User '{username}' database me nahi mila!")
+            print(f"Error: User '{username}' was not found in the database!")
             return
         user.role = "admin"
         db.commit()
-        print(f"Success: User '{username}' ab ADMIN ban chuka hai!")
+        print(f"Success: User '{username}' has been promoted to ADMIN!")
     finally:
         db.close()
 
