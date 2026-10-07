@@ -158,11 +158,16 @@ def get_ai_summary(
     current_user: models.User = Depends(security.get_current_user)
 ):
     """Generates an AI powered summary of all tasks for the current user."""
-    user_todos = db.query(models.Todo).filter(models.Todo.user_id == current_user.id).all()
-    tasks_data = [{"id": t.id, "title": t.title, "is_done": t.is_done} for t in user_todos]
-    
-    summary_text = ai_service.generate_task_summary(tasks_data)
-    return {"summary": summary_text}
+    try:
+        user_todos = db.query(models.Todo).filter(models.Todo.user_id == current_user.id).all()
+        tasks_data = [{"id": t.id, "title": t.title, "is_done": t.is_done} for t in user_todos]
+        summary_text = ai_service.generate_task_summary(tasks_data)
+        return {"summary": summary_text}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"AI service error: {str(e)}"
+        )
 
 
 @app.post("/ai/priorities", response_model=schemas.AIPriorityResponse)
@@ -171,11 +176,16 @@ def get_ai_priorities(
     current_user: models.User = Depends(security.get_current_user)
 ):
     """AI suggests prioritized task recommendations for pending items."""
-    user_todos = db.query(models.Todo).filter(models.Todo.user_id == current_user.id).all()
-    tasks_data = [{"id": t.id, "title": t.title, "is_done": t.is_done} for t in user_todos]
-    
-    priorities_text = ai_service.suggest_task_priorities(tasks_data)
-    return {"priorities": priorities_text}
+    try:
+        user_todos = db.query(models.Todo).filter(models.Todo.user_id == current_user.id).all()
+        tasks_data = [{"id": t.id, "title": t.title, "is_done": t.is_done} for t in user_todos]
+        priorities_text = ai_service.suggest_task_priorities(tasks_data)
+        return {"priorities": priorities_text}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"AI service error: {str(e)}"
+        )
 
 
 @app.post("/ai/natural-add", response_model=schemas.TodoResponse, status_code=status.HTTP_201_CREATED)
@@ -188,7 +198,13 @@ def natural_language_add_todo(
     if not req.prompt.strip():
         raise HTTPException(status_code=400, detail="Prompt cannot be empty")
     
-    extracted_title = ai_service.extract_task_from_natural_language(req.prompt)
+    try:
+        extracted_title = ai_service.extract_task_from_natural_language(req.prompt)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"AI parsing error: {str(e)}"
+        )
     
     new_todo = models.Todo(
         title=extracted_title,

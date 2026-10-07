@@ -72,10 +72,3 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if user is None:
         raise credentials_exception
     return user
-
-
-if __name__ == "__main__":
-    test_pass = "mypassword123"
-    hashed = hash_password(test_pass)
-    print("Password Hashing Test. Sample Hash:", hashed[:30] + "...")
-    print("Password Verification Result:", verify_password(test_pass, hashed))

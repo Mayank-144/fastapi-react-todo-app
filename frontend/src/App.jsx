@@ -31,19 +31,15 @@ function App() {
     setTimeout(() => setAlert(null), 4000);
   };
 
-  // Fetch Current User Profile
-  const fetchMe = async (authToken) => {
-    try {
-      const res = await fetch(`${API_URL}/me`, {
-        headers: { Authorization: `Bearer ${authToken}` }
-      });
-      if (!res.ok) throw new Error("Session expired");
-      const data = await res.json();
-      setUser(data);
-      if (data.role === "admin") fetchAdminUsers(authToken);
-    } catch {
-      handleLogout();
-    }
+  // Logout & Clear all session state
+  const handleLogout = (notify = false) => {
+    localStorage.removeItem("token");
+    setToken("");
+    setUser(null);
+    setTodos([]);
+    setAdminUsers([]);
+    setAiResult(null);
+    if (notify) showAlert("Logged out successfully", false);
   };
 
   // Fetch Todos
@@ -71,17 +67,55 @@ function App() {
         const data = await res.json();
         setAdminUsers(data);
       }
-    } catch {}
+    } catch {
+      showAlert("Failed to load admin user list");
+    }
   };
 
   useEffect(() => {
-    if (token) {
-      fetchMe(token);
-      fetchTodos(token);
-    } else {
-      setUser(null);
-      setTodos([]);
-    }
+    if (!token) return;
+
+    let isMounted = true;
+
+    const loadInitialData = async () => {
+      try {
+        const [meRes, todosRes] = await Promise.all([
+          fetch(`${API_URL}/me`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_URL}/todos`, { headers: { Authorization: `Bearer ${token}` } })
+        ]);
+
+        if (!meRes.ok) {
+          handleLogout(false);
+          return;
+        }
+
+        const userData = await meRes.json();
+        if (isMounted) setUser(userData);
+
+        if (todosRes.ok) {
+          const todosData = await todosRes.json();
+          if (isMounted) setTodos(todosData);
+        }
+
+        if (userData.role === "admin") {
+          const adminRes = await fetch(`${API_URL}/admin/users`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (adminRes.ok && isMounted) {
+            const adminData = await adminRes.json();
+            setAdminUsers(adminData);
+          }
+        }
+      } catch {
+        if (isMounted) showAlert("Failed to connect to server");
+      }
+    };
+
+    loadInitialData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [token]);
 
   // Handle Login & Signup
@@ -249,15 +283,6 @@ function App() {
     }
   };
 
-  // Logout
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    setToken("");
-    setUser(null);
-    setAiResult(null);
-    showAlert("Logged out successfully", false);
-  };
-
   const pendingCount = todos.filter(t => !t.is_done).length;
   const completedCount = todos.filter(t => t.is_done).length;
 
@@ -331,7 +356,7 @@ function App() {
                 </div>
               </div>
             </div>
-            <button className="btn btn-danger" onClick={handleLogout}>
+            <button className="btn btn-danger" onClick={() => handleLogout(true)}>
               Logout
             </button>
           </div>

@@ -6,14 +6,15 @@ from langchain_core.output_parsers import StrOutputParser
 
 load_dotenv()
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
-# Initialize Groq LLM (qwen/qwen3.8-27b provides high speed and multilingual comprehension)
-llm = ChatGroq(
-    groq_api_key=GROQ_API_KEY,
-    model_name="qwen/qwen3.8-27b",
-    temperature=0.2
-)
+def get_llm():
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise ValueError("GROQ_API_KEY is missing in your .env file.")
+    return ChatGroq(
+        groq_api_key=api_key,
+        model_name="qwen/qwen3.8-27b",
+        temperature=0.2
+    )
 
 output_parser = StrOutputParser()
 
@@ -61,7 +62,7 @@ def generate_task_summary(tasks: list[dict]) -> str:
         )
     ])
     
-    chain = prompt | llm | output_parser
+    chain = prompt | get_llm() | output_parser
     return chain.invoke({
         "tasks_text": tasks_text,
         "total": total,
@@ -110,7 +111,7 @@ def suggest_task_priorities(tasks: list[dict]) -> str:
         )
     ])
     
-    chain = prompt | llm | output_parser
+    chain = prompt | get_llm() | output_parser
     return chain.invoke({"tasks_text": tasks_text}).strip()
 
 
@@ -141,7 +142,7 @@ def extract_task_from_natural_language(user_text: str) -> str:
         )
     ])
     
-    chain = prompt | llm | output_parser
+    chain = prompt | get_llm() | output_parser
     res = chain.invoke({"user_text": user_text})
     # Sanitize any accidental quotes or asterisks
     clean_title = res.strip().strip('"').strip("'").replace("**", "").replace("*", "")
