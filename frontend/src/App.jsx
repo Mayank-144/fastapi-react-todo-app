@@ -172,7 +172,7 @@ function App() {
       if (!res.ok) throw new Error(data.detail || "AI parsing failed");
       
       setNaturalPrompt("");
-      showAlert(`✨ AI Created: "${data.title}"`, false);
+      showAlert(`✨ AI Created Task: "${data.title}"`, false);
       fetchTodos(token);
     } catch (err) {
       showAlert(err.message);
@@ -213,7 +213,7 @@ function App() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error("Failed to get priorities");
-      setAiResult({ title: "🎯 AI Priority Suggestions", text: data.priorities });
+      setAiResult({ title: "🎯 Smart Priority Suggestions", text: data.priorities });
     } catch (err) {
       showAlert(err.message);
     } finally {
@@ -258,28 +258,32 @@ function App() {
     showAlert("Logged out successfully", false);
   };
 
+  const pendingCount = todos.filter(t => !t.is_done).length;
+  const completedCount = todos.filter(t => t.is_done).length;
+
   return (
     <div className="container">
       {alert && (
         <div className={`alert ${alert.isError ? "alert-error" : "alert-success"}`}>
-          {alert.msg}
+          <span>{alert.isError ? "⚠️" : "✅"}</span>
+          <span>{alert.msg}</span>
         </div>
       )}
 
       {!token ? (
-        <div className="card">
+        <div className="card auth-box">
           <h1>{isSignup ? "Create Account" : "Welcome Back"}</h1>
           <p className="subtitle">
-            {isSignup ? "Sign up to start organizing todos" : "Enter your credentials to continue"}
+            {isSignup ? "Sign up to start organizing tasks with AI" : "Enter your credentials to continue"}
           </p>
 
           <form onSubmit={handleAuth}>
             <div className="form-group">
-              <label htmlFor="username">Username</label>
+              <label htmlFor="username">Email / Username</label>
               <input
                 id="username"
                 type="text"
-                placeholder="e.g. rahul123"
+                placeholder="e.g. rahul@example.com"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -298,7 +302,7 @@ function App() {
               />
             </div>
 
-            <button type="submit" className="btn">
+            <button type="submit" className="btn btn-full">
               {isSignup ? "Sign Up" : "Login"}
             </button>
           </form>
@@ -312,61 +316,77 @@ function App() {
         </div>
       ) : (
         <div className="card">
+          {/* HEADER */}
           <div className="app-header">
-            <div>
-              <div style={{ fontWeight: 700, fontSize: "18px" }}>
-                Hi, {user ? user.username : "User"}
+            <div className="user-profile">
+              <div className="user-avatar">
+                {user?.username ? user.username.charAt(0).toUpperCase() : "U"}
               </div>
-              <span className={`user-badge ${user?.role === "admin" ? "admin-badge" : ""}`}>
-                {user ? user.role.toUpperCase() : "USER"}
-              </span>
+              <div>
+                <div className="user-name">
+                  {user ? user.username : "User"}
+                  <span className={`user-badge ${user?.role === "admin" ? "admin-badge" : ""}`}>
+                    {user ? user.role.toUpperCase() : "USER"}
+                  </span>
+                </div>
+              </div>
             </div>
             <button className="btn btn-danger" onClick={handleLogout}>
               Logout
             </button>
           </div>
 
-          {/* AI TOOLBAR BUTTONS */}
-          <div className="ai-toolbar">
-            <button className="btn btn-ai" onClick={handleAISummary} disabled={aiLoading}>
-              📊 AI Summary
-            </button>
-            <button className="btn btn-ai" onClick={handleAIPriorities} disabled={aiLoading}>
-              🎯 AI Priorities
-            </button>
+          {/* AI SUPERPOWERS SECTION */}
+          <div className="ai-section">
+            <div className="ai-section-title">
+              <span>🤖</span> LangChain AI Assistant
+            </div>
+
+            <div className="ai-toolbar">
+              <button className="btn-ai-action" onClick={handleAISummary} disabled={aiLoading}>
+                <span>📊</span> AI Task Summary
+              </button>
+              <button className="btn-ai-action" onClick={handleAIPriorities} disabled={aiLoading}>
+                <span>🎯</span> Priority Suggestions
+              </button>
+            </div>
+
+            {/* NATURAL LANGUAGE TASK ADD */}
+            <form className="ai-natural-box" onSubmit={handleAINaturalAdd}>
+              <input
+                type="text"
+                placeholder="✨ Add in natural language (e.g. 'Kal shaam 6 baje gym jana hai')"
+                value={naturalPrompt}
+                onChange={(e) => setNaturalPrompt(e.target.value)}
+                disabled={aiLoading}
+              />
+              <button type="submit" className="btn-ai-gradient" disabled={aiLoading}>
+                {aiLoading ? "Thinking..." : "✨ AI Add"}
+              </button>
+            </form>
+
+            {/* AI RESULT DISPLAY CARD */}
+            {aiResult && (
+              <div className="ai-result-card">
+                <div className="ai-result-header">
+                  <div className="ai-result-title">{aiResult.title}</div>
+                  <button className="ai-close-btn" onClick={() => setAiResult(null)} title="Close">
+                    ✕
+                  </button>
+                </div>
+                <div className="ai-result-body">{aiResult.text}</div>
+              </div>
+            )}
           </div>
 
-          {/* AI RESULT DISPLAY MODAL */}
-          {aiResult && (
-            <div className="ai-result-card">
-              <div className="ai-result-header">
-                <span>{aiResult.title}</span>
-                <button
-                  style={{ background: "none", border: "none", color: "#c084fc", cursor: "pointer", fontSize: "16px" }}
-                  onClick={() => setAiResult(null)}
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="ai-result-body">{aiResult.text}</div>
-            </div>
-          )}
+          {/* STANDARD TODO SECTION */}
+          <div className="section-divider">
+            <span className="section-label">📋 My Tasks</span>
+            <span className="todo-counter">
+              {pendingCount} Pending • {completedCount} Done
+            </span>
+          </div>
 
-          {/* AI NATURAL LANGUAGE TASK ADD */}
-          <form className="ai-natural-row" onSubmit={handleAINaturalAdd}>
-            <input
-              type="text"
-              placeholder="✨ Add with AI (e.g. 'Kal 3 baje client meeting')"
-              value={naturalPrompt}
-              onChange={(e) => setNaturalPrompt(e.target.value)}
-              disabled={aiLoading}
-            />
-            <button type="submit" className="btn btn-ai" style={{ width: "auto", padding: "0 16px" }} disabled={aiLoading}>
-              {aiLoading ? "Thinking..." : "AI Add"}
-            </button>
-          </form>
-
-          {/* REGULAR ADD TODO FORM */}
           <form className="todo-input-row" onSubmit={handleAddTodo}>
             <input
               type="text"
@@ -376,15 +396,15 @@ function App() {
               required
             />
             <button type="submit" className="btn">
-              Add
+              Add Task
             </button>
           </form>
 
           {/* TODOS LIST */}
           <ul className="todo-list">
             {todos.length === 0 ? (
-              <li style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "14px", padding: "20px 0" }}>
-                No todos yet. Add one above! ✨
+              <li className="empty-state">
+                No tasks yet! Add one above or use the AI Assistant ✨
               </li>
             ) : (
               todos.map((todo) => (
@@ -392,6 +412,7 @@ function App() {
                   <div className="todo-left">
                     <input
                       type="checkbox"
+                      className="todo-checkbox"
                       checked={todo.is_done}
                       onChange={() => handleToggleTodo(todo.id)}
                     />
@@ -411,7 +432,7 @@ function App() {
           {user?.role === "admin" && (
             <div className="admin-card">
               <div className="admin-card-header">
-                <h3 style={{ fontSize: "15px", margin: 0 }}>👑 Admin Panel: All Users</h3>
+                <h3 style={{ fontSize: "15px", margin: 0 }}>👑 Admin Panel: Registered Users</h3>
                 <button className="btn btn-secondary" onClick={() => fetchAdminUsers(token)}>
                   Refresh
                 </button>
