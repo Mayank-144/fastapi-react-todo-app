@@ -14,20 +14,24 @@ function App() {
   // Todos state
   const [todos, setTodos] = useState([]);
   const [newTitle, setNewTitle] = useState("");
+  const [naturalPrompt, setNaturalPrompt] = useState("");
+
+  // AI states
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState(null); // { title: "", text: "" }
 
   // Admin users state
   const [adminUsers, setAdminUsers] = useState([]);
 
-  // Alert banner state
+  // Alert state
   const [alert, setAlert] = useState(null);
 
-  // Show Alert
   const showAlert = (msg, isError = true) => {
     setAlert({ msg, isError });
     setTimeout(() => setAlert(null), 4000);
   };
 
-  // Fetch Current Logged-in User
+  // Fetch Current User
   const fetchMe = async (authToken) => {
     try {
       const res = await fetch(`${API_URL}/me`, {
@@ -36,9 +40,7 @@ function App() {
       if (!res.ok) throw new Error("Session expired");
       const data = await res.json();
       setUser(data);
-      if (data.role === "admin") {
-        fetchAdminUsers(authToken);
-      }
+      if (data.role === "admin") fetchAdminUsers(authToken);
     } catch {
       handleLogout();
     }
@@ -59,7 +61,7 @@ function App() {
     }
   };
 
-  // Fetch Admin Users List
+  // Fetch Admin Users
   const fetchAdminUsers = async (authToken) => {
     try {
       const res = await fetch(`${API_URL}/admin/users`, {
@@ -72,7 +74,6 @@ function App() {
     } catch {}
   };
 
-  // On component mount or token change
   useEffect(() => {
     if (token) {
       fetchMe(token);
@@ -83,13 +84,12 @@ function App() {
     }
   }, [token]);
 
-  // Auth Handler (Login / Signup)
+  // Auth Handler
   const handleAuth = async (e) => {
     e.preventDefault();
     if (!username.trim() || !password) return;
 
     if (isSignup) {
-      // Signup (JSON)
       try {
         const res = await fetch(`${API_URL}/signup`, {
           method: "POST",
@@ -98,7 +98,6 @@ function App() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || "Signup failed");
-
         showAlert("Account created successfully! Please login.", false);
         setIsSignup(false);
         setPassword("");
@@ -106,7 +105,6 @@ function App() {
         showAlert(err.message);
       }
     } else {
-      // Login (OAuth2 Form Data)
       try {
         const formData = new URLSearchParams();
         formData.append("username", username);
@@ -131,7 +129,7 @@ function App() {
     }
   };
 
-  // Add Todo
+  // Regular Add Todo
   const handleAddTodo = async (e) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
@@ -153,7 +151,77 @@ function App() {
     }
   };
 
-  // Toggle Todo Done Status
+  // ==========================================
+  // AI FEATURE 1: Natural Language Task Add
+  // ==========================================
+  const handleAINaturalAdd = async (e) => {
+    e.preventDefault();
+    if (!naturalPrompt.trim()) return;
+
+    setAiLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/ai/natural-add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ prompt: naturalPrompt })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "AI parsing failed");
+      
+      setNaturalPrompt("");
+      showAlert(`✨ AI Created: "${data.title}"`, false);
+      fetchTodos(token);
+    } catch (err) {
+      showAlert(err.message);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // ==========================================
+  // AI FEATURE 2: Summary
+  // ==========================================
+  const handleAISummary = async () => {
+    setAiLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/ai/summary`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error("Failed to get AI summary");
+      setAiResult({ title: "📊 AI Task Summary", text: data.summary });
+    } catch (err) {
+      showAlert(err.message);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // ==========================================
+  // AI FEATURE 3: Priorities
+  // ==========================================
+  const handleAIPriorities = async () => {
+    setAiLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/ai/priorities`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error("Failed to get priorities");
+      setAiResult({ title: "🎯 AI Priority Suggestions", text: data.priorities });
+    } catch (err) {
+      showAlert(err.message);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // Toggle Todo Done
   const handleToggleTodo = async (id) => {
     try {
       const res = await fetch(`${API_URL}/todos/${id}`, {
@@ -186,26 +254,23 @@ function App() {
     localStorage.removeItem("token");
     setToken("");
     setUser(null);
+    setAiResult(null);
     showAlert("Logged out successfully", false);
   };
 
   return (
     <div className="container">
-      {/* Alert Notification */}
       {alert && (
         <div className={`alert ${alert.isError ? "alert-error" : "alert-success"}`}>
           {alert.msg}
         </div>
       )}
 
-      {/* Auth View (Login / Signup) */}
       {!token ? (
         <div className="card">
           <h1>{isSignup ? "Create Account" : "Welcome Back"}</h1>
           <p className="subtitle">
-            {isSignup
-              ? "Sign up to start organizing todos"
-              : "Enter your credentials to continue"}
+            {isSignup ? "Sign up to start organizing todos" : "Enter your credentials to continue"}
           </p>
 
           <form onSubmit={handleAuth}>
@@ -246,18 +311,13 @@ function App() {
           </div>
         </div>
       ) : (
-        /* Dashboard View */
         <div className="card">
           <div className="app-header">
             <div>
               <div style={{ fontWeight: 700, fontSize: "18px" }}>
                 Hi, {user ? user.username : "User"}
               </div>
-              <span
-                className={`user-badge ${
-                  user?.role === "admin" ? "admin-badge" : ""
-                }`}
-              >
+              <span className={`user-badge ${user?.role === "admin" ? "admin-badge" : ""}`}>
                 {user ? user.role.toUpperCase() : "USER"}
               </span>
             </div>
@@ -266,7 +326,47 @@ function App() {
             </button>
           </div>
 
-          {/* Add Todo Form */}
+          {/* AI TOOLBAR BUTTONS */}
+          <div className="ai-toolbar">
+            <button className="btn btn-ai" onClick={handleAISummary} disabled={aiLoading}>
+              📊 AI Summary
+            </button>
+            <button className="btn btn-ai" onClick={handleAIPriorities} disabled={aiLoading}>
+              🎯 AI Priorities
+            </button>
+          </div>
+
+          {/* AI RESULT DISPLAY MODAL */}
+          {aiResult && (
+            <div className="ai-result-card">
+              <div className="ai-result-header">
+                <span>{aiResult.title}</span>
+                <button
+                  style={{ background: "none", border: "none", color: "#c084fc", cursor: "pointer", fontSize: "16px" }}
+                  onClick={() => setAiResult(null)}
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="ai-result-body">{aiResult.text}</div>
+            </div>
+          )}
+
+          {/* AI NATURAL LANGUAGE TASK ADD */}
+          <form className="ai-natural-row" onSubmit={handleAINaturalAdd}>
+            <input
+              type="text"
+              placeholder="✨ Add with AI (e.g. 'Kal 3 baje client meeting')"
+              value={naturalPrompt}
+              onChange={(e) => setNaturalPrompt(e.target.value)}
+              disabled={aiLoading}
+            />
+            <button type="submit" className="btn btn-ai" style={{ width: "auto", padding: "0 16px" }} disabled={aiLoading}>
+              {aiLoading ? "Thinking..." : "AI Add"}
+            </button>
+          </form>
+
+          {/* REGULAR ADD TODO FORM */}
           <form className="todo-input-row" onSubmit={handleAddTodo}>
             <input
               type="text"
@@ -280,17 +380,10 @@ function App() {
             </button>
           </form>
 
-          {/* Todo List */}
+          {/* TODOS LIST */}
           <ul className="todo-list">
             {todos.length === 0 ? (
-              <li
-                style={{
-                  textAlign: "center",
-                  color: "var(--text-muted)",
-                  fontSize: "14px",
-                  padding: "20px 0"
-                }}
-              >
+              <li style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "14px", padding: "20px 0" }}>
                 No todos yet. Add one above! ✨
               </li>
             ) : (
@@ -306,10 +399,7 @@ function App() {
                       {todo.title}
                     </span>
                   </div>
-                  <button
-                    className="btn btn-danger"
-                    onClick={() => handleDeleteTodo(todo.id)}
-                  >
+                  <button className="btn btn-danger" onClick={() => handleDeleteTodo(todo.id)}>
                     Delete
                   </button>
                 </li>
@@ -317,29 +407,20 @@ function App() {
             )}
           </ul>
 
-          {/* Admin Section */}
+          {/* ADMIN ONLY PANEL */}
           {user?.role === "admin" && (
             <div className="admin-card">
               <div className="admin-card-header">
-                <h3 style={{ fontSize: "15px", margin: 0 }}>
-                  👑 Admin Panel: All Users
-                </h3>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => fetchAdminUsers(token)}
-                >
+                <h3 style={{ fontSize: "15px", margin: 0 }}>👑 Admin Panel: All Users</h3>
+                <button className="btn btn-secondary" onClick={() => fetchAdminUsers(token)}>
                   Refresh
                 </button>
               </div>
               <ul className="users-list">
                 {adminUsers.map((u) => (
                   <li key={u.id}>
-                    <span>
-                      <strong>#{u.id}</strong> {u.username}
-                    </span>
-                    <span>
-                      Role: <em>{u.role}</em>
-                    </span>
+                    <span><strong>#{u.id}</strong> {u.username}</span>
+                    <span>Role: <em>{u.role}</em></span>
                   </li>
                 ))}
               </ul>

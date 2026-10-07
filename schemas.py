@@ -49,3 +49,17 @@ class TodoResponse(BaseModel):
     user_id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ==========================================
+# 4. AI Schemas (LangChain)
+# ==========================================
+
+class AISummaryResponse(BaseModel):
+    summary: str
+
+class AIPriorityResponse(BaseModel):
+    priorities: str
+
+class AINaturalAddRequest(BaseModel):
+    prompt: str

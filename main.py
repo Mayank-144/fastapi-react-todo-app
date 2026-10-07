@@ -7,6 +7,7 @@ import database
 import models
 import schemas
 import security
+import ai_service
 
 # 1. Database tables automatically create karo
 models.Base.metadata.create_all(bind=database.engine)
@@ -146,6 +147,60 @@ def delete_todo(
     db.delete(todo)
     db.commit()
     return {"detail": "Todo deleted successfully"}
+
+
+# ==========================================
+# AI POWERED ENDPOINTS (LangChain)
+# ==========================================
+
+@app.post("/ai/summary", response_model=schemas.AISummaryResponse)
+def get_ai_summary(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """User ke saare database todos ka AI generated summary"""
+    user_todos = db.query(models.Todo).filter(models.Todo.user_id == current_user.id).all()
+    tasks_data = [{"id": t.id, "title": t.title, "is_done": t.is_done} for t in user_todos]
+    
+    summary_text = ai_service.generate_task_summary(tasks_data)
+    return {"summary": summary_text}
+
+
+@app.post("/ai/priorities", response_model=schemas.AIPriorityResponse)
+def get_ai_priorities(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """AI suggest karega ki pending tasks me se kaunsa task pehle karna hai"""
+    user_todos = db.query(models.Todo).filter(models.Todo.user_id == current_user.id).all()
+    tasks_data = [{"id": t.id, "title": t.title, "is_done": t.is_done} for t in user_todos]
+    
+    priorities_text = ai_service.suggest_task_priorities(tasks_data)
+    return {"priorities": priorities_text}
+
+
+@app.post("/ai/natural-add", response_model=schemas.TodoResponse, status_code=status.HTTP_201_CREATED)
+def natural_language_add_todo(
+    req: schemas.AINaturalAddRequest,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Natural language se task extract karke direct database me save karta hai"""
+    if not req.prompt.strip():
+        raise HTTPException(status_code=400, detail="Prompt cannot be empty")
+    
+    # AI extracts clean task title
+    extracted_title = ai_service.extract_task_from_natural_language(req.prompt)
+    
+    # Save to SQLite Database
+    new_todo = models.Todo(
+        title=extracted_title,
+        user_id=current_user.id
+    )
+    db.add(new_todo)
+    db.commit()
+    db.refresh(new_todo)
+    return new_todo
 
 
 # ==========================================
