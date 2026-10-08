@@ -63,3 +63,16 @@ class AIPriorityResponse(BaseModel):
 
 class AINaturalAddRequest(BaseModel):
     prompt: str
+
+class ChatMessage(BaseModel):
+    role: str  # "user" or "assistant"
+    content: str
+
+class AgentChatRequest(BaseModel):
+    message: str
+    history: list[ChatMessage] = []
+
+class AgentChatResponse(BaseModel):
+    reply: str
+    tools_used: list[str] = []
+    created_tasks: list[dict] = []

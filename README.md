@@ -1,34 +1,38 @@
-# 🚀 Full-Stack AI Todo Application (FastAPI + LangChain + React + Docker)
+# 🚀 Full-Stack AI Todo Application (FastAPI + LangChain Agent + React + Docker)
 
-A modern, production-grade Full-Stack Todo Application with Role-Based Access Control (RBAC) and **Multilingual AI Superpowers (English, Hindi, Hinglish)**. Built with **FastAPI**, **LangChain**, **Groq LLM**, **SQLAlchemy 2.0**, **Argon2 Password Hashing**, **JWT Authentication**, a sleek **React 19 (Vite)** glassmorphism UI, and containerized with **Docker & Docker Compose**.
+A modern, production-grade Full-Stack Todo Application featuring **LangChain Tool-Calling AI Agents**, **Live Weather Tools**, Role-Based Access Control (RBAC), and **Multilingual Superpowers (English, Hindi, Hinglish)**. Built with **FastAPI**, **LangChain**, **Groq LLM (`qwen/qwen3.8-27b`)**, **OpenWeatherMap API**, **SQLAlchemy 2.0**, **Argon2 Password Hashing**, **JWT Authentication**, a sleek **React 19 (Vite)** dark glassmorphism UI, and containerized with **Docker & Docker Compose**.
 
 ---
 
 ## 🌟 Key Features
 
-### 🤖 Multilingual AI Superpowers (LangChain + Groq)
-- **Natural Language Task Extraction:** Speak or type tasks naturally in English, Hindi (Devanagari), or Hinglish (e.g., *"Kal shaam 6 baje gym jana hai"* or *"Submit project report tomorrow at 5 PM"*) — AI parses the intent and creates a concise, structured task.
-- **📊 AI Task Summary:** Instant, structured status updates with progress tracking, emojis, and motivational coaching.
-- **🎯 Smart Priority Suggestions:** Categorizes pending tasks into High, Medium, and Low priorities with clear actionable reasoning.
+### 🤖 LangChain Agent & Tool-Calling System
+- **💬 Interactive AI Chat Assistant:** Full-featured conversational assistant embedded in the React UI with message history, tool invocation badges (`⚙️ get_weather`, `⚙️ add_todo_task`), and live UI state synchronization.
+- **🌤 Live Weather Tool:** Real-time weather reports for any city worldwide using **OpenWeatherMap API** (with automatic zero-config fallback to **Open-Meteo**).
+- **📝 Autonomous Task Creation:** Tell the AI *"Add a task to buy groceries tomorrow"* or in Hinglish *"Kal shaam 6 baje doctor ke paas jana hai"* — the agent dynamically calls the `add_todo_task` tool, writes to the database, and refreshes the frontend task list in real-time.
+- **📊 AI Task Summary Tool:** Intelligent status updates with task completion rates, emoji bullet points, and motivational coaching.
+- **🎯 Smart Priority Recommendations Tool:** Analyzes pending tasks and categorizes them into High, Medium, and Low priorities with clear explanations.
+- **🌐 Multilingual Understanding:** Seamlessly understands queries in **English**, **Hindi (Devanagari)**, and **Hinglish (Roman Hindi/Urdu)**.
 
 ### 🔐 Security & Role-Based Access Control (RBAC)
 - **JWT Authentication:** Secure OAuth2 password flow with signed access tokens.
-- **Argon2 Password Hashing:** Modern, secure password hashing using `pwdlib[argon2]` (industry best practice).
+- **Argon2 Password Hashing:** Modern, secure password hashing using `pwdlib[argon2]` (industry standard).
 - **User Role:** Create, view, complete, and delete personal private todos.
-- **Admin Role:** View all registered platform users and manage system tasks.
+- **Admin Role:** View all registered platform users and system-wide statistics.
 
 ### 🗄️ Robust Backend & Database
 - **SQLAlchemy 2.0 ORM:** Modern type-safe models using `Mapped` & `mapped_column`.
 - **SQLite Database:** Local relational persistence with foreign keys and cascade deletions.
 - **Interactive API Docs:** Auto-generated Swagger UI (`/docs`) & ReDoc (`/redoc`).
 
-### 🎨 Modern React Frontend
+### 🎨 Modern React 19 Frontend
 - **Dark Glassmorphism UI:** Tailored color palette, frosted glass styling, and smooth micro-animations.
-- **Real-Time State:** Instant optimistic updates for task toggling, adding, and deletion.
+- **Dual AI Interface:** Switch effortlessly between **💬 LangChain Agent Chat** and **⚡ Quick LCEL Actions**.
+- **Quick Prompt Pills:** One-click shortcuts for checking weather, summarizing tasks, and getting priority advice.
 - **Responsive Layout:** Optimized for mobile, tablet, and desktop viewports.
 
 ### 🐳 DevOps & Containerization
-- **Docker & Docker Compose:** One-command startup for both backend and frontend.
+- **Docker & Docker Compose:** Single-command startup for both backend and frontend.
 - **Hot Reloading:** Live volume mounting for frictionless development.
 
 ---
@@ -38,7 +42,9 @@ A modern, production-grade Full-Stack Todo Application with Role-Based Access Co
 | Layer | Technologies Used |
 | :--- | :--- |
 | **Backend** | Python 3.11+, FastAPI, SQLAlchemy 2.0, Pydantic v2, Uvicorn |
-| **AI / LLM** | LangChain, LangChain-Groq (`qwen/qwen3.8-27b`) |
+| **AI Agent / LLM** | LangChain 1.4+, LangChain-Groq (`qwen/qwen3.8-27b`), Tool Calling |
+| **Weather APIs** | OpenWeatherMap API + Open-Meteo Geocoding & Forecast |
+| **HTTP Client** | `requests`, `httpx` |
 | **Security** | `pwdlib[argon2]` (Password Hashing), `PyJWT` (Access Tokens), `python-dotenv` |
 | **Database** | SQLite (Relational ORM) |
 | **Frontend** | React 19, Vite, Vanilla CSS (Glassmorphism & Responsive Design) |
@@ -52,13 +58,13 @@ A modern, production-grade Full-Stack Todo Application with Role-Based Access Co
 todo-fastapi/
 │
 ├── .dockerignore           # Root Docker ignore rules
-├── .env                    # Environment variables (SECRET_KEY, GROQ_API_KEY)
+├── .env                    # Environment variables (SECRET_KEY, GROQ_API_KEY, OPENWEATHERMAP_API_KEY)
 ├── .gitignore              # Git ignore rules (secrets, venv, node_modules, db)
 ├── Dockerfile              # Backend Docker container definition
 ├── docker-compose.yml      # Multi-container orchestration (Backend + Frontend)
 ├── requirements.txt        # Python backend dependencies
 │
-├── ai_service.py           # LangChain + Groq AI logic (Summary, Priorities, Natural Add)
+├── ai_service.py           # LangChain Agent, Tools (Weather, Todo actions), & LCEL chains
 ├── database.py             # Database engine, session factory & dependency (get_db)
 ├── models.py               # SQLAlchemy 2.0 tables (User & Todo models)
 ├── schemas.py              # Pydantic v2 schemas for request validation & response filtering
@@ -73,8 +79,8 @@ todo-fastapi/
     ├── package.json        # Frontend dependencies
     ├── vite.config.js      # Vite configuration
     └── src/
-        ├── App.jsx         # Main React application component (Auth, Todos, AI, Admin)
-        ├── App.css         # Glassmorphism & responsive UI styling
+        ├── App.jsx         # Main React component (Auth, Todos, Agent Chat UI, Admin)
+        ├── App.css         # Glassmorphism, Agent Chat styling & responsive UI
         ├── index.css       # Core design tokens & gradient background
         └── main.jsx        # React root mounting
 ```
@@ -94,7 +100,9 @@ Make sure [Docker Desktop](https://www.docker.com/products/docker-desktop/) is i
    ALGORITHM=HS256
    ACCESS_TOKEN_EXPIRE_MINUTES=60
    GROQ_API_KEY=your_groq_api_key_here
+   OPENWEATHERMAP_API_KEY=your_openweathermap_api_key_here
    ```
+   *(Note: If `OPENWEATHERMAP_API_KEY` is left blank, weather queries will automatically use the built-in Open-Meteo fallback).*
 
 2. **Start Containers:**
    ```bash
@@ -169,6 +177,7 @@ docker exec -it fastapi_backend python make_admin.py <username>
 | `POST` | `/todos` | Create a new todo item | Yes (Bearer) |
 | `PATCH` | `/todos/{id}` | Toggle todo status (Done / Undone) | Yes (Owner only) |
 | `DELETE` | `/todos/{id}` | Delete a todo item | Yes (Owner / Admin) |
+| `POST` | `/ai/chat` | **LangChain Agent Chat** (Weather, Tasks, Summaries, Priorities) | Yes (Bearer) |
 | `POST` | `/ai/summary` | AI-generated status summary of user tasks | Yes (Bearer) |
 | `POST` | `/ai/priorities` | AI prioritized task recommendations | Yes (Bearer) |
 | `POST` | `/ai/natural-add` | Extract task title from natural language prompt | Yes (Bearer) |

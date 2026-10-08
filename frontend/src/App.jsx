@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 
 const API_URL = "http://localhost:8000";
@@ -16,9 +16,23 @@ function App() {
   const [newTitle, setNewTitle] = useState("");
   const [naturalPrompt, setNaturalPrompt] = useState("");
 
-  // AI states
+  // AI states (LCEL Quick Actions)
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState(null); // { title: "", text: "" }
+
+  // AI Agent Chat states
+  const [activeTab, setActiveTab] = useState("agent"); // "agent" | "quick"
+  const [chatMessages, setChatMessages] = useState([
+    {
+      id: "init-1",
+      role: "assistant",
+      content: "Hello! 👋 I am your LangChain AI Agent. I can check live weather around the world 🌤, manage and add tasks to your list 📝, summarize your progress 📊, or suggest priority recommendations 🎯 in English, Hindi, or Hinglish.\n\nHow can I help you today?",
+      tools_used: []
+    }
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatBottomRef = useRef(null);
 
   // Admin users state
   const [adminUsers, setAdminUsers] = useState([]);
@@ -31,6 +45,13 @@ function App() {
     setTimeout(() => setAlert(null), 4000);
   };
 
+  // Scroll to bottom of chat
+  useEffect(() => {
+    if (activeTab === "agent") {
+      chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatMessages, chatLoading, activeTab]);
+
   // Logout & Clear all session state
   const handleLogout = (notify = false) => {
     localStorage.removeItem("token");
@@ -39,6 +60,14 @@ function App() {
     setTodos([]);
     setAdminUsers([]);
     setAiResult(null);
+    setChatMessages([
+      {
+        id: "init-1",
+        role: "assistant",
+        content: "Hello! 👋 I am your LangChain AI Agent. I can check live weather around the world 🌤, manage and add tasks to your list 📝, summarize your progress 📊, or suggest priority recommendations 🎯 in English, Hindi, or Hinglish.\n\nHow can I help you today?",
+        tools_used: []
+      }
+    ]);
     if (notify) showAlert("Logged out successfully", false);
   };
 
@@ -186,7 +215,74 @@ function App() {
   };
 
   // ==========================================
-  // AI FEATURE 1: Multilingual Natural Language Task Add
+  // AI AGENT CHAT HANDLER
+  // ==========================================
+  const handleSendChat = async (messageText = null) => {
+    const textToSend = messageText || chatInput;
+    if (!textToSend.trim() || chatLoading) return;
+
+    const userMsg = {
+      id: Date.now().toString(),
+      role: "user",
+      content: textToSend.trim(),
+      tools_used: []
+    };
+
+    setChatMessages((prev) => [...prev, userMsg]);
+    setChatInput("");
+    setChatLoading(true);
+
+    try {
+      // Build history for context (last 6 messages)
+      const historyPayload = chatMessages.slice(-6).map((m) => ({
+        role: m.role,
+        content: m.content
+      }));
+
+      const res = await fetch(`${API_URL}/ai/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          message: textToSend.trim(),
+          history: historyPayload
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Agent chat failed");
+
+      const assistantMsg = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data.reply,
+        tools_used: data.tools_used || []
+      };
+
+      setChatMessages((prev) => [...prev, assistantMsg]);
+
+      // If the agent created new tasks, refresh the task list immediately!
+      if (data.created_tasks && data.created_tasks.length > 0) {
+        fetchTodos(token);
+        showAlert(`✨ Agent added ${data.created_tasks.length} task(s) to your list!`, false);
+      }
+    } catch (err) {
+      const errorMsg = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: `⚠️ Error: ${err.message}`,
+        tools_used: []
+      };
+      setChatMessages((prev) => [...prev, errorMsg]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  // ==========================================
+  // AI LCEL Feature 1: Multilingual Natural Language Task Add
   // ==========================================
   const handleAINaturalAdd = async (e) => {
     e.preventDefault();
@@ -216,7 +312,7 @@ function App() {
   };
 
   // ==========================================
-  // AI FEATURE 2: Task Summary
+  // AI LCEL Feature 2: Task Summary
   // ==========================================
   const handleAISummary = async () => {
     setAiLoading(true);
@@ -236,7 +332,7 @@ function App() {
   };
 
   // ==========================================
-  // AI FEATURE 3: Smart Priority Suggestions
+  // AI LCEL Feature 3: Smart Priority Suggestions
   // ==========================================
   const handleAIPriorities = async () => {
     setAiLoading(true);
@@ -361,45 +457,163 @@ function App() {
             </button>
           </div>
 
-          {/* AI SUPERPOWERS SECTION */}
+          {/* AI AGENT & ACTIONS CONTAINER */}
           <div className="ai-section">
-            <div className="ai-section-title">
-              <span>🤖</span> LangChain AI Assistant (English • Hindi • Hinglish)
+            {/* TAB SELECTOR */}
+            <div className="ai-tabs">
+              <button
+                type="button"
+                className={`ai-tab-btn ${activeTab === "agent" ? "active" : ""}`}
+                onClick={() => setActiveTab("agent")}
+              >
+                💬 LangChain Agent (Chat & Weather)
+              </button>
+              <button
+                type="button"
+                className={`ai-tab-btn ${activeTab === "quick" ? "active" : ""}`}
+                onClick={() => setActiveTab("quick")}
+              >
+                ⚡ Quick LCEL Tools
+              </button>
             </div>
 
-            <div className="ai-toolbar">
-              <button className="btn-ai-action" onClick={handleAISummary} disabled={aiLoading}>
-                <span>📊</span> AI Task Summary
-              </button>
-              <button className="btn-ai-action" onClick={handleAIPriorities} disabled={aiLoading}>
-                <span>🎯</span> Priority Suggestions
-              </button>
-            </div>
-
-            {/* MULTILINGUAL NATURAL LANGUAGE TASK ADD */}
-            <form className="ai-natural-box" onSubmit={handleAINaturalAdd}>
-              <input
-                type="text"
-                placeholder="✨ Add in English, Hindi, or Hinglish (e.g. 'Gym at 6 PM' or 'Kal shaam 6 baje gym jana')"
-                value={naturalPrompt}
-                onChange={(e) => setNaturalPrompt(e.target.value)}
-                disabled={aiLoading}
-              />
-              <button type="submit" className="btn-ai-gradient" disabled={aiLoading}>
-                {aiLoading ? "Thinking..." : "✨ AI Add"}
-              </button>
-            </form>
-
-            {/* AI RESULT DISPLAY CARD */}
-            {aiResult && (
-              <div className="ai-result-card">
-                <div className="ai-result-header">
-                  <div className="ai-result-title">{aiResult.title}</div>
-                  <button className="ai-close-btn" onClick={() => setAiResult(null)} title="Close">
-                    ✕
+            {/* TAB 1: INTERACTIVE AI AGENT CHAT */}
+            {activeTab === "agent" && (
+              <div className="agent-chat-container">
+                {/* QUICK PROMPT SUGGESTION PILLS */}
+                <div className="quick-prompts-bar">
+                  <button
+                    type="button"
+                    className="prompt-pill"
+                    onClick={() => handleSendChat("What is the weather in Delhi?")}
+                  >
+                    🌤 Weather in Delhi
+                  </button>
+                  <button
+                    type="button"
+                    className="prompt-pill"
+                    onClick={() => handleSendChat("What's the weather in London?")}
+                  >
+                    🌧 London Weather
+                  </button>
+                  <button
+                    type="button"
+                    className="prompt-pill"
+                    onClick={() => handleSendChat("Summarize my current tasks and progress")}
+                  >
+                    📊 Task Summary
+                  </button>
+                  <button
+                    type="button"
+                    className="prompt-pill"
+                    onClick={() => handleSendChat("Suggest task priorities for my pending items")}
+                  >
+                    🎯 Priority Advice
                   </button>
                 </div>
-                <div className="ai-result-body">{aiResult.text}</div>
+
+                {/* CHAT MESSAGES WINDOW */}
+                <div className="chat-messages-box">
+                  {chatMessages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`chat-message-row ${msg.role === "user" ? "user-row" : "assistant-row"}`}
+                    >
+                      <div className="chat-avatar">
+                        {msg.role === "user" ? "👤" : "🤖"}
+                      </div>
+                      <div className={`chat-bubble ${msg.role === "user" ? "user-bubble" : "assistant-bubble"}`}>
+                        {msg.tools_used && msg.tools_used.length > 0 && (
+                          <div className="tools-badge-container">
+                            {msg.tools_used.map((tool, idx) => (
+                              <span key={idx} className="tool-badge">
+                                ⚙️ {tool}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="chat-content">{msg.content}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {chatLoading && (
+                    <div className="chat-message-row assistant-row">
+                      <div className="chat-avatar">🤖</div>
+                      <div className="chat-bubble assistant-bubble thinking-bubble">
+                        <span className="dot-pulse"></span>
+                        <span style={{ marginLeft: "8px", fontSize: "13px", color: "var(--text-muted)" }}>
+                          Agent is thinking & running tools...
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={chatBottomRef} />
+                </div>
+
+                {/* CHAT INPUT BAR */}
+                <form
+                  className="chat-input-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSendChat();
+                  }}
+                >
+                  <input
+                    type="text"
+                    placeholder="Ask about weather, add tasks, or request summaries (English, Hindi, Hinglish)..."
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    disabled={chatLoading}
+                  />
+                  <button
+                    type="submit"
+                    className="btn btn-ai-send"
+                    disabled={chatLoading || !chatInput.trim()}
+                  >
+                    {chatLoading ? "⏳" : "Send 🚀"}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* TAB 2: QUICK LCEL TOOLS */}
+            {activeTab === "quick" && (
+              <div className="quick-lcel-container">
+                <div className="ai-toolbar">
+                  <button className="btn-ai-action" onClick={handleAISummary} disabled={aiLoading}>
+                    <span>📊</span> AI Task Summary
+                  </button>
+                  <button className="btn-ai-action" onClick={handleAIPriorities} disabled={aiLoading}>
+                    <span>🎯</span> Priority Suggestions
+                  </button>
+                </div>
+
+                {/* MULTILINGUAL NATURAL LANGUAGE TASK ADD */}
+                <form className="ai-natural-box" onSubmit={handleAINaturalAdd}>
+                  <input
+                    type="text"
+                    placeholder="✨ Add in English, Hindi, or Hinglish (e.g. 'Gym at 6 PM' or 'Kal shaam 6 baje gym jana')"
+                    value={naturalPrompt}
+                    onChange={(e) => setNaturalPrompt(e.target.value)}
+                    disabled={aiLoading}
+                  />
+                  <button type="submit" className="btn-ai-gradient" disabled={aiLoading}>
+                    {aiLoading ? "Thinking..." : "✨ AI Add"}
+                  </button>
+                </form>
+
+                {/* AI RESULT DISPLAY CARD */}
+                {aiResult && (
+                  <div className="ai-result-card">
+                    <div className="ai-result-header">
+                      <div className="ai-result-title">{aiResult.title}</div>
+                      <button className="ai-close-btn" onClick={() => setAiResult(null)} title="Close">
+                        ✕
+                      </button>
+                    </div>
+                    <div className="ai-result-body">{aiResult.text}</div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -429,7 +643,7 @@ function App() {
           <ul className="todo-list">
             {todos.length === 0 ? (
               <li className="empty-state">
-                No tasks yet! Add one above or use the AI Assistant ✨
+                No tasks yet! Add one above or tell the AI Agent ✨
               </li>
             ) : (
               todos.map((todo) => (

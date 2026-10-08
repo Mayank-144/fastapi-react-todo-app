@@ -216,6 +216,32 @@ def natural_language_add_todo(
     return new_todo
 
 
+@app.post("/ai/chat", response_model=schemas.AgentChatResponse)
+def chat_with_agent(
+    req: schemas.AgentChatRequest,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    """Interactive AI Agent endpoint with Weather and Todo tool calling."""
+    if not req.message.strip():
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+    
+    try:
+        chat_history = [{"role": msg.role, "content": msg.content} for msg in req.history]
+        agent_result = ai_service.run_todo_agent(
+            user_message=req.message,
+            db=db,
+            user_id=current_user.id,
+            chat_history=chat_history
+        )
+        return agent_result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Agent execution error: {str(e)}"
+        )
+
+
 # ==========================================
 # ADMIN ONLY ENDPOINTS
 # ==========================================
